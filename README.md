@@ -1,7 +1,14 @@
 # 🌊 Ecosistema Serverless - Verano Azul
 Este repositorio contiene la arquitectura completa (Frontend y Backend/Bot Local) para operar tu E-Commerce.
 
+**Sitio en vivo:** [https://greyv02.github.io/veranoazul_ecommerce/](https://greyv02.github.io/veranoazul_ecommerce/)
+
 ---
+
+## 🎨 Branding Premium
+La interfaz ha sido personalizada con los colores oficiales extraídos del logo de **Verano Azul**:
+- **Azul Primario:** #1D4ED8 (Confianza y Seriedad)
+- **Magenta de Acento:** #E11D48 (Energía y Acción)
 
 ## 🚀 Guía de Configuración y Despliegue
 
