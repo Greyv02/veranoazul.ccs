@@ -1,0 +1,6 @@
+credentials.json
+__pycache__/
+venv/
+.env
+scripts/mass_upload.py
+scripts/setup_admin_dashboard.py

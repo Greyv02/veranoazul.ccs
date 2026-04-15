@@ -7,9 +7,10 @@ import re
 # CONFIGURACIÓN (REEMPLAZA CON TUS DATOS)
 # ==========================================
 TELEGRAM_BOT_TOKEN = "8662527192:AAG2nID-y7jySgZ7ntEtmpqIj_VTUrh4KkY"
-IMGBB_API_KEY = "TU_IMGBB_API_KEY_AQUI"
-DOCUMENTO_GOOGLE = "Verano Azul Inventario" # Nombre exacto de tu archivo en Google Sheets
-PESTANA_GOOGLE = "Inventario"               # Nombre de la pestaña inferior
+IMGBB_API_KEY = "01abb5a1fa771a46f0bd54a091703fab"
+DOCUMENTO_ID = "118e0HzgtMsmvI1N3Z-RItFNHv2NYB_kOd2h_SafHQh8"
+# Las categorías corresponden a los nombres exactos de las pestañas
+CATEGORIAS = ["Deportivo Mujer", "Deportivo Hombre", "Accesorios Deportivos", "Lentes", "Relojes"]
 
 # ==========================================
 # INICIALIZACIÓN
@@ -18,10 +19,8 @@ print("Iniciando bot...")
 bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
 try:
-    # Asegúrate de tener el archivo credentials.json en la misma carpeta que este script
     gc = gspread.service_account(filename='credentials.json')
-    spreadsheet = gc.open(DOCUMENTO_GOOGLE)
-    sheet = spreadsheet.worksheet(PESTANA_GOOGLE)
+    spreadsheet = gc.open_by_key(DOCUMENTO_ID)
     print("✅ Conexión a Google Sheets exitosa.")
 except Exception as e:
     print("❌ Error conectando a Google Sheets. Verifica 'credentials.json' y permisos.")
@@ -68,15 +67,15 @@ def format_stock_dict(stock_dict):
     return "|".join([f"{k}={v}" for k, v in stock_dict.items()])
 
 def generar_nuevo_codigo():
-    """Genera el código de formato VA00X leyendo cuántas filas hay."""
-    filas = sheet.get_all_values()
-    # Asumimos la fila 1 son encabezados
-    total_articulos = len(filas) - 1
-    if total_articulos < 0: 
-        total_articulos = 0
-    
-    nuevo_numero = total_articulos + 1
-    return f"VA{nuevo_numero:03d}"
+    """Genera un código basado en el total de artículos en todas las hojas de categorías."""
+    total = 0
+    for cat in CATEGORIAS:
+        try:
+            ws = spreadsheet.worksheet(cat)
+            total += len(ws.get_all_values()) - 1
+        except:
+            continue
+    return f"VA{total + 1:03d}"
 
 # ==========================================
 # HANDLERS - NUEVOS PRODUCTOS
@@ -136,7 +135,13 @@ def recibir_nuevo_articulo(message):
     ]
 
     try:
-        sheet.append_row(row_data)
+        # Intentar encontrar la pestaña correcta
+        if categoria not in CATEGORIAS:
+             bot.reply_to(message, f"❌ La categoría '{categoria}' no es válida. Opciones: {', '.join(CATEGORIAS)}")
+             return
+             
+        ws = spreadsheet.worksheet(categoria)
+        ws.append_row(row_data)
         resumen_stock = "\n".join([f"   • {k}: {v}" for k, v in stock_map.items()])
         bot.reply_to(message, f"✅ *Artículo Agregado Exitosamente*\n\n"
                               f"▪️ *Código:* {codigo}\n"
@@ -162,14 +167,29 @@ def registrar_venta(message):
             
         codigo = args[0].upper()
         
-        # Buscar la fila del código
+        # Buscar la fila del código en todas las pestañas de categorías
         bot.reply_to(message, f"🔍 Buscando producto {codigo}...")
-        cell = sheet.find(codigo)
-        fila = cell.row
         
-        # Obtener stock actual y tallas de la fila
-        stock_actual_str = sheet.cell(fila, 7).value
-        tallas_disponibles = sheet.cell(fila, 9).value.upper()
+        ws = None
+        cell = None
+        for cat in CATEGORIAS:
+            try:
+                temp_ws = spreadsheet.worksheet(cat)
+                cell = temp_ws.find(codigo)
+                if cell:
+                    ws = temp_ws
+                    break
+            except:
+                continue
+        
+        if not ws or not cell:
+            bot.reply_to(message, f"❌ Código {codigo} no encontrado en ninguna categoría.")
+            return
+
+        fila = cell.row
+        # Obtener stock actual y tallas de la fila (Col 7 para Stock, Col 9 para Tallas)
+        stock_actual_str = ws.cell(fila, 7).value
+        tallas_disponibles = ws.cell(fila, 9).value.upper()
         
         stock_map = parse_stock_string(stock_actual_str)
         
@@ -207,7 +227,7 @@ def registrar_venta(message):
         nuevo_stock_str = format_stock_dict(stock_map)
 
         # Actualizar celda
-        sheet.update_cell(fila, 7, nuevo_stock_str)
+        ws.update_cell(fila, 7, nuevo_stock_str)
         
         resumen = "\n".join([f"   • {k}: {v}" for k, v in stock_map.items()])
         bot.reply_to(message, f"✅ *Venta Registrada*\n\n"

@@ -14,40 +14,39 @@
  * 10. Copia la URL generada y pégala en `app.js` en la variable SCRIPT_URL.
  */
 
-const SHEET_NAME = "Inventario";
+const CATEGORY_SHEETS = ["Deportivo Mujer", "Deportivo Hombre", "Accesorios Deportivos", "Lentes", "Relojes"];
 
 function doGet(e) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    
-    // Si no encuentra la hoja, devuelve un error claro
-    if (!sheet) {
-      return responseJSON({ "error": "No se encontró la pestaña '" + SHEET_NAME + "'" }, 404);
-    }
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let allProducts = [];
 
-    const data = sheet.getDataRange().getValues();
-    
-    // Si la hoja está vacía
-    if (data.length <= 1) {
-      return responseJSON([], 200);
-    }
-
-    // La fila 1 contiene los encabezados (Nombres de las columnas)
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    const jsonArray = rows.map((row) => {
-      let obj = {};
-      row.forEach((cell, index) => {
-        // Usa el nombre de la columna como la clave del objeto. 
-        // Reemplaza espacios con '_' para evitar problemas en JS.
-        let key = String(headers[index]).trim().replace(/\s+/g, '_');
-        obj[key] = cell;
-      });
-      return obj;
+    CATEGORY_SHEETS.forEach(sheetName => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (sheet) {
+        const data = sheet.getDataRange().getValues();
+        if (data.length > 1) {
+          const headers = data[0];
+          const rows = data.slice(1);
+          
+          const sheetProducts = rows.map((row) => {
+            let obj = {};
+            row.forEach((cell, index) => {
+              let key = String(headers[index]).trim().replace(/\s+/g, '_');
+              obj[key] = cell;
+            });
+            // Asegurar que la categoría coincida con el nombre de la pestaña si no está en la columna
+            if (!obj.Categoria || obj.Categoria === "") {
+              obj.Categoria = sheetName;
+            }
+            return obj;
+          });
+          allProducts = allProducts.concat(sheetProducts);
+        }
+      }
     });
 
-    return responseJSON(jsonArray, 200);
+    return responseJSON(allProducts, 200);
 
   } catch (error) {
     return responseJSON({ "error": error.toString() }, 500);
@@ -56,11 +55,9 @@ function doGet(e) {
 
 /**
  * Función helper para formatear la respuesta como JSON
- * e incluir CORS headers permitiendo solicitudes desde cualquier lugar.
  */
 function responseJSON(data, code) {
   const output = ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-    
   return output;
 }

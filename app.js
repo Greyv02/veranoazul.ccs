@@ -38,18 +38,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initApp() {
     try {
-        // En producción des-comentar la linea de fetch real
-        // const response = await fetch(SCRIPT_URL);
-        // allProducts = await response.json();
-        
-        // --- DATA DE PRUEBAS / MOCKUP MIENTRAS SE CONECTA LA API ---
-        allProducts = [
-            { Codigo: 'VA001', Nombre: 'Leggins Deportivos Seamless', Categoria: 'Deportivo Mujer', Precio_Venta: 15.00, Precio_Oferta: 12.00, Tallas: 'S,M,L', Stock: 10, Imagen_URL: 'https://i.ibb.co/3k5Xy9n/placeholder-mujer1.jpg' },
-            { Codigo: 'VA002', Nombre: 'Short Running Elite', Categoria: 'Deportivo Hombre', Precio_Venta: 10.00, Precio_Oferta: '', Tallas: 'M,L,XL', Stock: 5, Imagen_URL: 'https://i.ibb.co/fCXq9x7/placeholder-hombre1.jpg' },
-            { Codigo: 'VA003', Nombre: 'Top Deportivo Impact', Categoria: 'Deportivo Mujer', Precio_Venta: 12.00, Precio_Oferta: '', Tallas: 'S,M', Stock: 8, Imagen_URL: 'https://i.ibb.co/3k5Xy9n/placeholder-mujer1.jpg' },
-            { Codigo: 'VA004', Nombre: 'Smartwatch V-Sport', Categoria: 'Relojes', Precio_Venta: 35.00, Precio_Oferta: 29.99, Tallas: 'Única', Stock: 4, Imagen_URL: 'https://i.ibb.co/L5kL2C8/placeholder-reloj.jpg' }
-        ];
-        // -------------------------------------------------------------
+        if (SCRIPT_URL && SCRIPT_URL !== 'URL_DE_TU_WEB_APP_AQUI') {
+            const response = await fetch(SCRIPT_URL);
+            allProducts = await response.json();
+            console.log("Productos cargados:", allProducts);
+        } else {
+            // DATA DE PRUEBAS / MOCKUP MIENTRAS SE CONECTA LA API
+            allProducts = [
+                { Codigo: 'VA001', Nombre: 'Leggins Deportivos Seamless', Categoria: 'Deportivo Mujer', Precio_Venta: 15.00, Precio_Oferta: 12.00, Tallas: 'S,M,L', Stock: 'S=5|M=0|L=2', Imagen_URL: 'https://i.ibb.co/3k5Xy9n/placeholder-mujer1.jpg' },
+                { Codigo: 'VA101', Nombre: 'Short Running Elite', Categoria: 'Deportivo Hombre', Precio_Venta: 10.00, Precio_Oferta: '', Tallas: 'M,L,XL', Stock: 'M=5|L=0', Imagen_URL: 'https://i.ibb.co/fCXq9x7/placeholder-hombre1.jpg' }
+            ];
+        }
 
         loadingSpinner.style.display = 'none';
         renderProducts(allProducts);
@@ -70,7 +69,8 @@ function setupEventListeners() {
             if (category === 'Todos') {
                 renderProducts(allProducts);
             } else {
-                const filtered = allProducts.filter(p => p.Categoria === category);
+                // Filtro flexible para ignorar mayúsculas/minúsculas
+                const filtered = allProducts.filter(p => p.Categoria.toLowerCase() === category.toLowerCase());
                 renderProducts(filtered);
             }
         }
