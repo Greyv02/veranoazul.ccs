@@ -27,17 +27,22 @@ function doGet(e) {
         const data = sheet.getDataRange().getValues();
         // Solo procesar si hay más de una fila (cabecera + datos)
         if (data && data.length > 1) {
-          const headers = data[0];
+          const headers = data[0].map(h => {
+            // Normalizar cabeceras: quitar acentos y espacios
+            return String(h).trim()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+              .replace(/\s+/g, '_'); // Espacios a guiones bajos
+          });
+          
           const rows = data.slice(1);
           
           const sheetProducts = rows.map((row) => {
             let obj = {};
             row.forEach((cell, index) => {
-              // Limpiar Nombres de columnas para evitar espacios extraños
-              let key = String(headers[index]).trim().replace(/\s+/g, '_');
-              if (key) obj[key] = cell;
+              let key = headers[index];
+              if (key) obj[key] = (typeof cell === 'string') ? cell.trim() : cell;
             });
-            // Asegurar que la categoría coincida con el nombre de la pestaña
+            // Asegurar que la categoría coincida con el nombre de la pestaña si está vacío
             if (!obj.Categoria || obj.Categoria === "") {
               obj.Categoria = sheetName;
             }

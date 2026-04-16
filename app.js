@@ -224,8 +224,9 @@ function renderCategories() {
 }
 
 function showCategory(category) {
-    const filtered = allProducts.filter(p => p.Categoria === category);
-    currentCatNameEl.textContent = category;
+    const targetCat = category.trim();
+    const filtered = allProducts.filter(p => (p.Categoria || "").trim() === targetCat);
+    currentCatNameEl.textContent = targetCat;
     
     // Actualizar nav superior
     updateHeaderNav(category);
