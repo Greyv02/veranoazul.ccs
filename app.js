@@ -17,6 +17,12 @@ const categoriesView = document.getElementById('categories-view');
 const productsView = document.getElementById('products-view');
 const backToCatsBtn = document.getElementById('back-to-categories');
 const currentCatNameEl = document.getElementById('current-category-name');
+
+// Carrito DOM
+const cartBtn = document.getElementById('cart-btn');
+const closeCartBtn = document.getElementById('close-cart-btn');
+const cartOverlay = document.getElementById('cart-overlay');
+const cartSidebar = document.getElementById('cart-sidebar');
 const cartItemsContainer = document.getElementById('cart-items');
 const cartTotalEl = document.getElementById('cart-total-price');
 const cartCountEl = document.getElementById('cart-count');
