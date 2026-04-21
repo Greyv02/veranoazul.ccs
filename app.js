@@ -50,9 +50,15 @@ async function initApp() {
                 const rawCat = (p.Categoria || "Otros").trim().toLowerCase();
                 const normalizedCat = rawCat.replace(/\b\w/g, c => c.toUpperCase());
                 
+                // Helper para limpiar precios (remover $, espacios, comas)
+                const cleanPrice = (val) => {
+                    if (!val) return 0;
+                    return parseFloat(val.toString().replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+                };
+
                 // Determinar precio real (Oferta > Venta)
-                const precioVenta = parseFloat(p.Precio_Venta) || 0;
-                const precioOferta = p.Precio_Oferta ? parseFloat(p.Precio_Oferta) : null;
+                const precioVenta = cleanPrice(p.Precio_Venta);
+                const precioOferta = p.Precio_Oferta ? cleanPrice(p.Precio_Oferta) : null;
                 const finalPrice = (precioOferta !== null && precioOferta > 0) ? precioOferta : precioVenta;
 
                 return {
@@ -195,26 +201,33 @@ function setupEventListeners() {
 // RENDERIZADO
 // ==========================================
 
-/**
- * Convierte una cadena de stock (ej: "S=5|M=0") en un objeto usable.
- */
 function parseStock(stockStr, sizesStr) {
     const stockMap = {};
-    const sizes = sizesStr.split(',').map(s => s.trim());
+    const sizes = (sizesStr || "").split(',').map(s => s.trim()).filter(s => s !== '');
     
-    // Si el stock es un número simple (compatibilidad inicial o error de formato manual)
-    if (!stockStr.toString().includes('=')) {
-        const totalStock = parseInt(stockStr) || 0;
+    // Si no hay tallas definidas, tratar como Única
+    if (sizes.length === 0) sizes.push('Única');
+
+    const rawStock = stockStr ? stockStr.toString().trim() : "0";
+    
+    // Si el stock es un número simple (ej: "35") o está vacío
+    if (!rawStock.includes('=') && !rawStock.includes('|')) {
+        const totalStock = parseInt(rawStock.replace(/[^\d]/g, '')) || 0;
         sizes.forEach(size => stockMap[size] = totalStock);
         return stockMap;
     }
 
-    // Formato nuevo: "S=5|M=0|L=2"
-    stockStr.split('|').forEach(part => {
+    // Formato: "S=5|M=0|L=2"
+    rawStock.split('|').forEach(part => {
         const [size, qty] = part.split('=');
         if (size && qty !== undefined) {
-            stockMap[size.trim()] = parseInt(qty);
+            stockMap[size.trim()] = parseInt(qty.replace(/[^\d]/g, '')) || 0;
         }
+    });
+
+    // Asegurar que todas las tallas tengan una entrada en el map
+    sizes.forEach(size => {
+        if (stockMap[size] === undefined) stockMap[size] = 0;
     });
 
     return stockMap;
