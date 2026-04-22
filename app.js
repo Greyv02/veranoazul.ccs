@@ -40,7 +40,12 @@ function initTracking() {
     const triggerInteraction = () => {
         if (!interacted) {
             interacted = true;
-            trackPixel('ViewContent', { content_name: 'Main Page', content_category: 'E-commerce' });
+            trackPixel('ViewContent', { 
+                content_name: 'Catálogo Verano Azul', 
+                content_category: 'Ropa Deportiva',
+                currency: 'USD',
+                value: 0 
+            });
         }
     };
 
@@ -615,6 +620,17 @@ function updateCartUI() {
 function toggleCart() {
     cartOverlay.classList.toggle('active');
     cartSidebar.classList.toggle('active');
+    
+    // Nivel 2.5: InitiateCheckout (Cuando el usuario abre la bolsa)
+    if (cartSidebar.classList.contains('active') && cart.length > 0) {
+        let total = cart.reduce((sum, item) => sum + (item.Precio * item.Cantidad), 0);
+        trackPixel('InitiateCheckout', {
+            value: total,
+            currency: 'USD',
+            content_ids: cart.map(item => item.Codigo),
+            contents: cart.map(item => ({ id: item.Codigo, quantity: item.Cantidad }))
+        });
+    }
 }
 
 function processCheckout() {
