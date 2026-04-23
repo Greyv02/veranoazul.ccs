@@ -630,11 +630,24 @@ function processCheckout() {
     text += `*TOTAL A PAGAR: $${total.toFixed(2)}*\n\n`;
     text += `Quedo atento(a) para los métodos de pago. ¡Gracias!`;
 
-    // Nivel 3: Purchase Event (Solo en la acción de finalizar)
-    trackPixel('Purchase', 
-        { value: total, currency: 'USD' },
-        { eventID: 'purchase_' + Date.now() }
-    );
+    // Nivel 3: Purchase Event (Enriquecido para el algoritmo de Meta)
+    const purchaseData = {
+        value: total,
+        currency: 'USD',
+        content_type: 'product',
+        content_ids: cart.map(item => item.Codigo),
+        contents: cart.map(item => {
+            const product = allProducts.find(p => p.Codigo === item.Codigo);
+            return {
+                id: item.Codigo,
+                quantity: item.Cantidad,
+                item_price: item.Precio,
+                on_sale: product ? product.Tiene_Oferta : false
+            };
+        })
+    };
+
+    trackPixel('Purchase', purchaseData, { eventID: 'purchase_' + Date.now() });
 
     const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedText}`;
