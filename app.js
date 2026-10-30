@@ -60,6 +60,21 @@ const sizeFilterContainer = document.getElementById('size-filter-container');
 // ==========================================
 // INICIALIZACIÓN
 // ==========================================
+// Monto mínimo para envío gratis (liquidación). Cambiar solo este número.
+const ENVIO_GRATIS_DESDE = 20;
+
+// Si una foto local no existe (producto nuevo), usar la de ImgBB
+document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+    const match = img.src.match(/img\/(VA\d+)\.jpg$/);
+    const product = match && allProducts.find(p => p.Codigo === match[1]);
+    if (product && product.Imagen_Remota) {
+        img.dataset.fallback = '1';
+        img.src = product.Imagen_Remota;
+    }
+}, true);
+
 document.addEventListener('DOMContentLoaded', () => {
     initTracking();
     initApp();
@@ -90,8 +105,11 @@ async function initApp() {
                 const precioOferta = p.Precio_Oferta ? cleanPrice(p.Precio_Oferta) : null;
                 const finalPrice = (precioOferta !== null && precioOferta > 0) ? precioOferta : precioVenta;
 
+                // Foto local (carpeta img/ del repo) con respaldo a la URL del Sheet
                 return {
                     ...p,
+                    Imagen_URL: `img/${p.Codigo}.jpg`,
+                    Imagen_Remota: p.Imagen_URL,
                     Categoria: normalizedCat,
                     Precio_Final: finalPrice,
                     Precio_Original: precioVenta,
@@ -558,7 +576,17 @@ function updateCartUI() {
     let total = 0;
     let count = 0;
 
+    const cartSubtotal = cart.reduce((sum, item) => sum + (parseFloat(item.Precio) || 0) * item.Cantidad, 0);
+    const faltaEnvio = ENVIO_GRATIS_DESDE - cartSubtotal;
+    const progresoEnvio = Math.min(100, (cartSubtotal / ENVIO_GRATIS_DESDE) * 100);
+
     cartItemsContainer.innerHTML = `
+        <div class="shipping-progress ${faltaEnvio <= 0 ? 'done' : ''}">
+            <p>${faltaEnvio <= 0
+                ? '🎉 ¡Tienes <strong>ENVÍO GRATIS</strong> por MRW!'
+                : `🚚 Te faltan <strong>$${faltaEnvio.toFixed(2)}</strong> para el envío gratis`}</p>
+            <div class="shipping-bar"><span style="width:${progresoEnvio}%"></span></div>
+        </div>
         <div class="cart-instruction">
             ✨ Escoge tus favoritos y finaliza por WhatsApp.
         </div>
@@ -627,7 +655,10 @@ function processCheckout() {
         text += `   Precio: $${itemTotal.toFixed(2)}\n\n`;
     });
 
-    text += `*TOTAL A PAGAR: $${total.toFixed(2)}*\n\n`;
+    text += `*TOTAL A PAGAR: $${total.toFixed(2)}*\n`;
+    text += total >= ENVIO_GRATIS_DESDE
+        ? `🚚 Envío GRATIS por MRW (liquidación)\n\n`
+        : `🚚 Envío por MRW (gratis desde $${ENVIO_GRATIS_DESDE})\n\n`;
     text += `Quedo atento(a) para los métodos de pago. ¡Gracias!`;
 
     // Nivel 3: Purchase Event (Enriquecido para el algoritmo de Meta)
